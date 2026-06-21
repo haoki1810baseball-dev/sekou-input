@@ -94,6 +94,10 @@
     .unit-wrap input { padding-right: 44px; }
     .unit-tag { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 13px; color: var(--text-secondary); pointer-events: none; font-weight: 500; }
 
+    /* GL基準バッジ */
+    .gl-note { display: inline-block; font-size: 10px; font-weight: 600; color: var(--blue-dark); background: var(--blue-bg); border-radius: 4px; padding: 1px 6px; margin-left: 5px; letter-spacing: 0.03em; vertical-align: middle; }
+    .obstacle-area .gl-note { color: #993C1D; background: #fdd9cc; }
+
     .divider { height: 0.5px; background: var(--border-light); margin: 12px 0; }
 
     /* セクション見出し */
@@ -309,16 +313,16 @@ function addExc() {
     <div class="divider"></div>
     <div class="field-row">
       <div class="field">
-        <label>フライアッシュ層完了深度</label>
+        <label>フライアッシュ層完了深度<span class="gl-note">GL基準</span></label>
         <div class="unit-wrap">
-          <input type="number" placeholder="0" step="1" inputmode="numeric" data-field="fly-depth">
+          <input type="text" inputmode="text" placeholder="-1200" data-field="fly-depth" data-numeric="true">
           <span class="unit-tag">mm</span>
         </div>
       </div>
       <div class="field">
-        <label>掘削完了深度</label>
+        <label>掘削完了深度<span class="gl-note">GL基準</span></label>
         <div class="unit-wrap">
-          <input type="number" placeholder="0" step="1" inputmode="numeric" data-field="exc-depth">
+          <input type="text" inputmode="text" placeholder="-3500" data-field="exc-depth" data-numeric="true">
           <span class="unit-tag">mm</span>
         </div>
       </div>
@@ -326,7 +330,7 @@ function addExc() {
     <div class="field">
       <label>生コン打設数量</label>
       <div class="unit-wrap">
-        <input type="number" placeholder="0.00" step="0.01" inputmode="decimal" data-field="concrete-vol">
+        <input type="text" inputmode="decimal" placeholder="0.00" data-field="concrete-vol" data-numeric="true">
         <span class="unit-tag">m³</span>
       </div>
     </div>
@@ -344,16 +348,16 @@ function addExc() {
       <div class="obs-label"><i class="ti ti-alert-triangle" style="font-size:13px;"></i>障害詳細</div>
       <div class="field-row">
         <div class="field">
-          <label>障害発生深度</label>
+          <label>障害発生深度<span class="gl-note">GL基準</span></label>
           <div class="unit-wrap">
-            <input type="number" placeholder="0" step="1" inputmode="numeric" data-field="obs-start-depth">
+            <input type="text" inputmode="text" placeholder="-1500" data-field="obs-start-depth" data-numeric="true">
             <span class="unit-tag">mm</span>
           </div>
         </div>
         <div class="field">
-          <label>障害撤去完了深度</label>
+          <label>障害撤去完了深度<span class="gl-note">GL基準</span></label>
           <div class="unit-wrap">
-            <input type="number" placeholder="0" step="1" inputmode="numeric" data-field="obs-end-depth">
+            <input type="text" inputmode="text" placeholder="-2000" data-field="obs-end-depth" data-numeric="true">
             <span class="unit-tag">mm</span>
           </div>
         </div>
@@ -497,6 +501,15 @@ function showToast(msg, isError) {
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 2800);
 }
+
+// 数値フィールドのバリデーション（マイナス・小数点対応）
+document.addEventListener('input', function(e) {
+  if (!e.target.dataset.numeric) return;
+  const v = e.target.value;
+  // 先頭マイナス1つ・数字・小数点のみ許可
+  const cleaned = v.replace(/[^0-9.\-]/g, '').replace(/(?!^)-/g, '').replace(/(\..*)\./g, '$1');
+  if (v !== cleaned) e.target.value = cleaned;
+});
 
 init();
 </script>

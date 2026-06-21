@@ -461,14 +461,18 @@ function collectRows(date, asset) {
   const base = { 施工日: date, 号機番号: asset, 登録日時: new Date().toLocaleString('ja-JP') };
   const rows = [];
   document.querySelectorAll('#pile-cards .point-card').forEach(card => {
-    rows.push({ ...base, 種別: '杭芯セット完了', 地点番号: getVal(card,'pile-point'),
+    const point = getVal(card,'pile-point');
+    if (!point) return; // 地点番号が空なら追加しない
+    rows.push({ ...base, 種別: '杭芯セット完了', 地点番号: point,
       フライアッシュ層完了深度_mm:'', 掘削完了深度_mm:'', 生コン打設数量_m3:'',
       地中障害:'', 障害発生深度_mm:'', 障害撤去完了深度_mm:'', 障害物:'',
       備考: getVal(card,'remarks') });
   });
   document.querySelectorAll('#exc-cards .point-card').forEach(card => {
+    const point = getVal(card,'exc-point');
+    if (!point) return; // 地点番号が空なら追加しない
     const hasObs = card.querySelector('.toggle')?.classList.contains('on');
-    rows.push({ ...base, 種別: '掘削完了', 地点番号: getVal(card,'exc-point'),
+    rows.push({ ...base, 種別: '掘削完了', 地点番号: point,
       フライアッシュ層完了深度_mm: getVal(card,'fly-depth'),
       掘削完了深度_mm: getVal(card,'exc-depth'),
       生コン打設数量_m3: getVal(card,'concrete-vol'),
@@ -479,7 +483,9 @@ function collectRows(date, asset) {
       備考: getVal(card,'remarks') });
   });
   document.querySelectorAll('#back-cards .point-card').forEach(card => {
-    rows.push({ ...base, 種別: '埋め戻し完了', 地点番号: getVal(card,'back-point'),
+    const point = getVal(card,'back-point');
+    if (!point) return; // 地点番号が空なら追加しない
+    rows.push({ ...base, 種別: '埋め戻し完了', 地点番号: point,
       フライアッシュ層完了深度_mm:'', 掘削完了深度_mm:'', 生コン打設数量_m3:'',
       地中障害:'', 障害発生深度_mm:'', 障害撤去完了深度_mm:'', 障害物:'',
       備考: getVal(card,'remarks') });
@@ -494,7 +500,7 @@ async function submitRecord() {
   if (!date || !asset) { showToast('施工日と号機番号は必須です', true); return; }
 
   const rows = collectRows(date, asset);
-  if (rows.length === 0) { showToast('入力データがありません', true); return; }
+  if (rows.length === 0) { showToast('地点番号を1つ以上入力してください', true); btn.disabled = false; btn.innerHTML = '<i class="ti ti-circle-check"></i>この日の実績を保存・送信'; return; }
 
   const isUpdate = editingSessionId !== null;
   const sessionId = isUpdate ? editingSessionId : ('s' + Date.now());

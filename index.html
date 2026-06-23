@@ -324,7 +324,7 @@ function addPile() {
   div.innerHTML = `
     <div class="point-card-header">
       <span class="point-num pile">杭芯 ${n}</span>
-      ${n > 1 ? `<button class="remove-btn" onclick="removeCard('pile-cards','pile-badge',this,'pile')"><i class="ti ti-x"></i></button>` : '<span style="width:30px"></span>'}
+      <button class="remove-btn" onclick="removeCard('pile-cards','pile-badge',this,'pile')"><i class="ti ti-x"></i></button>
     </div>
     <div class="field">
       <label>地点番号</label>
@@ -344,7 +344,7 @@ function addExc() {
   div.innerHTML = `
     <div class="point-card-header">
       <span class="point-num exc">掘削 ${n}</span>
-      ${n > 1 ? `<button class="remove-btn" onclick="removeCard('exc-cards','exc-badge',this,'exc')"><i class="ti ti-x"></i></button>` : '<span style="width:30px"></span>'}
+      <button class="remove-btn" onclick="removeCard('exc-cards','exc-badge',this,'exc')"><i class="ti ti-x"></i></button>
     </div>
     <div class="field">
       <label>地点番号</label>
@@ -419,7 +419,7 @@ function addBack() {
   div.innerHTML = `
     <div class="point-card-header">
       <span class="point-num back">埋戻 ${n}</span>
-      ${n > 1 ? `<button class="remove-btn" onclick="removeCard('back-cards','back-badge',this,'back')"><i class="ti ti-x"></i></button>` : '<span style="width:30px"></span>'}
+      <button class="remove-btn" onclick="removeCard('back-cards','back-badge',this,'back')"><i class="ti ti-x"></i></button>
     </div>
     <div class="field">
       <label>地点番号</label>

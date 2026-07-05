@@ -187,7 +187,10 @@
 <!-- タブバー -->
 <div class="tab-bar">
   <button class="tab-btn active" onclick="switchTab('input')" id="tab-input">
-    <i class="ti ti-edit"></i>入力
+    <i class="ti ti-crane"></i>土壌置換
+  </button>
+  <button class="tab-btn" onclick="switchTab('honkui')" id="tab-honkui">
+    <i class="ti ti-building-factory"></i>本杭工事
   </button>
   <button class="tab-btn" onclick="switchTab('history')" id="tab-history">
     <i class="ti ti-history"></i>送信履歴
@@ -258,6 +261,62 @@
     <i class="ti ti-circle-check"></i>この日の実績を保存・送信
   </button>
   <button class="clear-btn" onclick="cancelEdit()">
+    <i class="ti ti-refresh"></i>入力内容をリセット
+  </button>
+
+  <div class="info-card">
+    <div class="info-card-header"><i class="ti ti-brand-google"></i>データ送信先</div>
+    <p>「保存・送信」を押すと自動でGoogleスプレッドシートに送信されます。<br>送信済みデータは「送信履歴」タブで確認・修正できます。</p>
+  </div>
+</div>
+</div>
+
+<!-- ===== 本杭工事タブ ===== -->
+<div class="tab-panel" id="panel-honkui">
+<div class="app">
+  <div class="header">
+    <div class="header-icon" style="background:#378ADD;"><i class="ti ti-building-factory"></i></div>
+    <div>
+      <div class="header-title">本杭工事入力</div>
+      <div class="header-sub" id="honkui-today-label"></div>
+    </div>
+  </div>
+
+  <!-- 編集モードバナー -->
+  <div class="edit-banner" id="honkui-edit-banner">
+    <div class="edit-banner-text"><i class="ti ti-pencil"></i>修正モード：内容を修正して再送信してください</div>
+    <button class="btn-cancel-edit" onclick="cancelHonkuiEdit()">キャンセル</button>
+  </div>
+
+  <div class="card">
+    <div class="card-label"><i class="ti ti-calendar"></i>基本情報</div>
+    <div class="field">
+      <label>日付</label>
+      <input type="date" id="honkui-date">
+    </div>
+    <div class="field">
+      <label>号機番号</label>
+      <select id="honkui-asset">
+        <option value="">-- 選択 --</option>
+        <option>1号機</option><option>2号機</option><option>3号機</option>
+        <option>4号機</option><option>5号機</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="block-group">
+    <div class="block-header">
+      <div class="block-title exc"><i class="ti ti-building-factory"></i>杭データ</div>
+      <span class="badge exc" id="honkui-badge">未入力</span>
+    </div>
+    <div id="honkui-cards"></div>
+    <button class="add-btn exc" onclick="addHonkuiCard()"><i class="ti ti-plus"></i>杭を追加</button>
+  </div>
+
+  <button class="submit-btn" id="honkui-submit-btn" onclick="submitHonkui()" style="background:#378ADD;">
+    <i class="ti ti-circle-check"></i>実績を保存・送信
+  </button>
+  <button class="clear-btn" onclick="cancelHonkuiEdit()">
     <i class="ti ti-refresh"></i>入力内容をリセット
   </button>
 
@@ -663,37 +722,76 @@ async function doDelete(sessionId) {
 /* ===== 履歴表示 ===== */
 function renderHistory() {
   const list = document.getElementById('history-list');
-  document.getElementById('history-count').textContent = `${sessions.length} 件`;
 
-  if (sessions.length === 0) {
+  // 土壌置換と本杭工事の履歴を統合して送信日時で降順ソート
+  const allSessions = [
+    ...sessions.map(s => ({ ...s, type: '土壌置換' })),
+    ...honkuiSessions.map(s => ({ ...s, type: '本杭工事' }))
+  ].sort((a, b) => new Date(b.送信日時) - new Date(a.送信日時));
+
+  document.getElementById('history-count').textContent = `${allSessions.length} 件`;
+
+  if (allSessions.length === 0) {
     list.innerHTML = `<div class="history-empty"><i class="ti ti-inbox"></i>まだ送信履歴がありません</div>`;
     return;
   }
 
-  list.innerHTML = sessions.map(s => {
+  list.innerHTML = allSessions.map(s => {
+    const isSoilReplacement = s.type === '土壌置換';
+    const typeColor = isSoilReplacement ? 'var(--green)' : 'var(--blue)';
+    const typeBg = isSoilReplacement ? 'var(--green-bg)' : 'var(--blue-bg)';
+    const typeLabel = s.type;
+
     const rowsHTML = s.rows.map(r => {
-      let detail = `<strong>${r.地点番号 || '（地点番号なし）'}</strong>`;
-      if (r.種別 === '掘削完了') {
-        if (r.掘削完了深度_mm) detail += `　深度 ${r.掘削完了深度_mm}mm`;
-        if (r.流動化処理材打設数量_m3) detail += `　流動化処理材 ${r.流動化処理材打設数量_m3}m³`;
-        if (r.地中障害 === '有') detail += `　<span style="color:var(--orange);font-weight:600;">⚠ 障害あり</span>`;
+      let detail = '';
+      if (isSoilReplacement) {
+        detail = `<strong>${r.地点番号 || '（地点番号なし）'}</strong>`;
+        if (r.種別 === '掘削完了') {
+          if (r.掘削完了深度_mm) detail += `　深度 ${r.掘削完了深度_mm}mm`;
+          if (r.流動化処理材打設数量_m3) detail += `　流動化処理材 ${r.流動化処理材打設数量_m3}m³`;
+          if (r.地中障害 === '有') detail += `　<span style="color:var(--orange);font-weight:600;">⚠ 障害あり</span>`;
+        }
+        if (r.備考) detail += `<br>備考：${r.備考}`;
+        return `<div class="session-row">
+          <span class="row-type ${r.種別}">${r.種別}</span>
+          <div class="row-detail">${detail}</div>
+        </div>`;
+      } else {
+        detail = `<strong>杭番号：${r['杭番号'] || '未入力'}</strong>　${r['号機番号'] || ''}`;
+        if (r['杭芯ずれX_mm'] || r['杭芯ずれY_mm']) detail += `<br>杭芯ずれ X:${r['杭芯ずれX_mm']}mm Y:${r['杭芯ずれY_mm']}mm`;
+        if (r['杭頭レベル_mm']) detail += `　杭頭:${r['杭頭レベル_mm']}mm`;
+        if (r['セメントミルク数量_m3']) detail += `　セメントミルク:${r['セメントミルク数量_m3']}m³`;
+        if (r['備考']) detail += `<br>備考：${r['備考']}`;
+        return `<div class="session-row">
+          <span class="row-type" style="background:var(--blue-bg);color:var(--blue-dark);">本杭工事</span>
+          <div class="row-detail">${detail}</div>
+        </div>`;
       }
-      if (r.備考) detail += `<br>備考：${r.備考}`;
-      return `<div class="session-row">
-        <span class="row-type ${r.種別}">${r.種別}</span>
-        <div class="row-detail">${detail}</div>
-      </div>`;
     }).join('');
+
+    const editBtn = isSoilReplacement
+      ? `<button class="btn-edit" onclick="startEdit('${s.sessionId}')"><i class="ti ti-pencil"></i>修正</button>`
+      : `<button class="btn-edit" onclick="startHonkuiEdit('${s.sessionId}')" style="color:var(--blue-dark);background:var(--blue-bg);border-color:var(--blue-border);"><i class="ti ti-pencil"></i>修正</button>`;
+    const deleteBtn = isSoilReplacement
+      ? `<button class="btn-delete" onclick="deleteSession('${s.sessionId}')"><i class="ti ti-trash"></i></button>`
+      : `<button class="btn-delete" onclick="deleteHonkuiSession('${s.sessionId}')"><i class="ti ti-trash"></i></button>`;
+
+    const titleLabel = isSoilReplacement
+      ? `${s.施工日}　${s.号機番号}`
+      : `${s.日付}　${s.杭番号}　${s.号機番号}`;
 
     return `<div class="session-card">
       <div class="session-header">
         <div class="session-meta">
-          <div class="session-date">${s.施工日}　${s.号機番号}</div>
+          <div class="session-date">
+            <span style="font-size:11px;background:${typeBg};color:${typeColor};padding:2px 7px;border-radius:8px;margin-right:6px;font-weight:600;">${typeLabel}</span>
+            ${titleLabel}
+          </div>
           <div class="session-info">送信：${s.送信日時}　${s.rows.length}行</div>
         </div>
         <div class="session-actions">
-          <button class="btn-edit" onclick="startEdit('${s.sessionId}')"><i class="ti ti-pencil"></i>修正</button>
-          <button class="btn-delete" onclick="deleteSession('${s.sessionId}')"><i class="ti ti-trash"></i></button>
+          ${editBtn}
+          ${deleteBtn}
         </div>
       </div>
       <div class="session-rows">${rowsHTML}</div>
@@ -719,7 +817,216 @@ document.addEventListener('input', function(e) {
   if (v !== cleaned) e.target.value = cleaned;
 });
 
+/* ===== 本杭工事 ===== */
+const HONKUI_KEY = 'honkuiRecords_v1';
+let honkuiSessions = JSON.parse(localStorage.getItem(HONKUI_KEY) || '[]');
+let editingHonkuiSessionId = null;
+let honkuiCount = 0;
+
+function initHonkui() {
+  const t = new Date();
+  const y = t.getFullYear(), m = String(t.getMonth()+1).padStart(2,'0'), d = String(t.getDate()).padStart(2,'0');
+  document.getElementById('honkui-date').value = `${y}-${m}-${d}`;
+  document.getElementById('honkui-today-label').textContent = `${y}年${m}月${d}日`;
+  updateHonkuiBadge(0);
+}
+
+function updateHonkuiBadge(n) {
+  const el = document.getElementById('honkui-badge');
+  if (n === 0) {
+    el.textContent = '未入力';
+    el.style.background = 'var(--border-light)';
+    el.style.color = 'var(--text-secondary)';
+  } else {
+    el.textContent = `${n} 本`;
+    el.style.background = 'var(--blue-bg)';
+    el.style.color = 'var(--blue-dark)';
+  }
+}
+
+function addHonkuiCard() {
+  honkuiCount++;
+  const n = honkuiCount;
+  const div = document.createElement('div');
+  div.className = 'point-card';
+  div.innerHTML = `
+    <div class="point-card-header">
+      <span class="point-num exc">杭 ${n}</span>
+      <button class="remove-btn" onclick="removeHonkuiCard(this)"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="field">
+      <label>杭番号</label>
+      <input type="text" placeholder="例：401" inputmode="text" data-field="kuid">
+    </div>
+    <div class="divider"></div>
+    <div class="field-row">
+      <div class="field">
+        <label>杭芯ずれ X方向</label>
+        <div class="unit-wrap">
+          <input type="text" placeholder="10" inputmode="text" data-field="sx" data-numeric="true">
+          <span class="unit-tag">mm</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>杭芯ずれ Y方向</label>
+        <div class="unit-wrap">
+          <input type="text" placeholder="-5" inputmode="text" data-field="sy" data-numeric="true">
+          <span class="unit-tag">mm</span>
+        </div>
+      </div>
+    </div>
+    <div class="field">
+      <label>杭頭レベル<span class="gl-note">GL基準</span></label>
+      <div class="unit-wrap">
+        <input type="text" placeholder="-500" inputmode="text" data-field="level" data-numeric="true">
+        <span class="unit-tag">mm</span>
+      </div>
+    </div>
+    <div class="field">
+      <label>セメントミルク数量</label>
+      <div class="unit-wrap">
+        <input type="text" placeholder="0.0" inputmode="decimal" data-field="cement" data-numeric="true">
+        <span class="unit-tag">m³</span>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="remarks-area field">
+      <label><i class="ti ti-notes"></i>備考</label>
+      <textarea placeholder="特記事項があれば入力" data-field="remarks"></textarea>
+    </div>`;
+  document.getElementById('honkui-cards').appendChild(div);
+  updateHonkuiBadge(honkuiCount);
+}
+
+function removeHonkuiCard(btn) {
+  btn.closest('.point-card').remove();
+  const cards = document.querySelectorAll('#honkui-cards .point-card');
+  cards.forEach((c, i) => { c.querySelector('.point-num').textContent = `杭 ${i+1}`; });
+  honkuiCount = cards.length;
+  updateHonkuiBadge(honkuiCount);
+}
+
+function resetHonkuiForm(resetDate = true) {
+  document.getElementById('honkui-cards').innerHTML = '';
+  honkuiCount = 0;
+  updateHonkuiBadge(0);
+  if (resetDate) {
+    const t = new Date();
+    document.getElementById('honkui-date').value = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+  }
+  document.getElementById('honkui-asset').value = '';
+}
+
+function getHonkuiVal(card, field) {
+  const el = card.querySelector(`[data-field="${field}"]`);
+  return el ? el.value.trim() : '';
+}
+
+async function submitHonkui() {
+  const date = document.getElementById('honkui-date').value;
+  const asset = document.getElementById('honkui-asset').value;
+  if (!date || !asset) { showToast('日付と号機番号は必須です', true); return; }
+
+  const cards = document.querySelectorAll('#honkui-cards .point-card');
+  const rows = [];
+  cards.forEach(card => {
+    const kuid = getHonkuiVal(card, 'kuid');
+    if (!kuid) return;
+    rows.push({
+      '日付': date,
+      '杭番号': kuid,
+      '号機番号': asset,
+      '杭芯ずれX_mm': getHonkuiVal(card, 'sx'),
+      '杭芯ずれY_mm': getHonkuiVal(card, 'sy'),
+      '杭頭レベル_mm': getHonkuiVal(card, 'level'),
+      'セメントミルク数量_m3': getHonkuiVal(card, 'cement'),
+      '備考': getHonkuiVal(card, 'remarks'),
+    });
+  });
+
+  if (rows.length === 0) { showToast('杭番号を1つ以上入力してください', true); return; }
+
+  const isUpdate = editingHonkuiSessionId !== null;
+  const sessionId = isUpdate ? editingHonkuiSessionId : ('h' + Date.now());
+  rows.forEach(r => r.sessionId = sessionId);
+
+  const btn = document.getElementById('honkui-submit-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 1s linear infinite;"></i>　送信中...';
+
+  try {
+    await fetch(GAS_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      body: JSON.stringify({ mode: isUpdate ? 'update' : 'insert', sessionId, sheetName: '本杭工事', rows })
+    });
+  } catch (_) {}
+
+  if (isUpdate) {
+    const idx = honkuiSessions.findIndex(s => s.sessionId === sessionId);
+    if (idx !== -1) honkuiSessions[idx] = { sessionId, 日付: date, 号機番号: asset, 送信日時: new Date().toLocaleString('ja-JP'), rows };
+  } else {
+    honkuiSessions.unshift({ sessionId, 日付: date, 号機番号: asset, 送信日時: new Date().toLocaleString('ja-JP'), rows });
+  }
+  localStorage.setItem(HONKUI_KEY, JSON.stringify(honkuiSessions));
+  showToast(isUpdate ? `修正内容を再送信しました` : `${rows.length}本を送信しました`);
+  cancelHonkuiEdit();
+
+  btn.disabled = false;
+  btn.innerHTML = '<i class="ti ti-circle-check"></i>実績を保存・送信';
+}
+
+function cancelHonkuiEdit() {
+  editingHonkuiSessionId = null;
+  document.getElementById('honkui-edit-banner').classList.remove('visible');
+  document.getElementById('honkui-submit-btn').innerHTML = '<i class="ti ti-circle-check"></i>実績を保存・送信';
+  resetHonkuiForm();
+}
+
+function startHonkuiEdit(sessionId) {
+  const session = honkuiSessions.find(s => s.sessionId === sessionId);
+  if (!session) return;
+  editingHonkuiSessionId = sessionId;
+  resetHonkuiForm(false);
+  document.getElementById('honkui-date').value = session.日付;
+  document.getElementById('honkui-asset').value = session.号機番号;
+
+  session.rows.forEach(row => {
+    addHonkuiCard();
+    const cards = document.querySelectorAll('#honkui-cards .point-card');
+    const c = cards[cards.length - 1];
+    const setV = (f, v) => { const el = c.querySelector(`[data-field="${f}"]`); if (el && v) el.value = v; };
+    setV('kuid', row['杭番号']);
+    setV('sx', row['杭芯ずれX_mm']);
+    setV('sy', row['杭芯ずれY_mm']);
+    setV('level', row['杭頭レベル_mm']);
+    setV('cement', row['セメントミルク数量_m3']);
+    setV('remarks', row['備考']);
+  });
+
+  document.getElementById('honkui-edit-banner').classList.add('visible');
+  document.getElementById('honkui-submit-btn').innerHTML = '<i class="ti ti-send"></i>修正内容を再送信';
+  switchTab('honkui');
+  window.scrollTo(0, 0);
+}
+
+async function deleteHonkuiSession(sessionId) {
+  if (!confirm('この送信履歴を削除しますか？')) return;
+  try {
+    await fetch(GAS_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      body: JSON.stringify({ mode: 'update', sessionId, sheetName: '本杭工事', rows: [] })
+    });
+  } catch (_) {}
+  honkuiSessions = honkuiSessions.filter(s => s.sessionId !== sessionId);
+  localStorage.setItem(HONKUI_KEY, JSON.stringify(honkuiSessions));
+  renderHistory();
+  showToast('削除しました');
+}
+
 init();
+initHonkui();
 </script>
 </body>
 </html>

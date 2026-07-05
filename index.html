@@ -585,7 +585,7 @@ async function submitRecord() {
     await fetch(GAS_URL, {
       method: 'POST',
       mode: 'no-cors',
-      body: JSON.stringify({ mode: isUpdate ? 'update' : 'insert', sessionId, rows })
+      body: JSON.stringify({ mode: isUpdate ? 'update' : 'insert', sessionId, sheetName: '土壌置換', rows })
     });
   } catch (_) {
     // no-corsでは例外が出ても送信されている場合があるため無視
@@ -709,7 +709,7 @@ async function doDelete(sessionId) {
     await fetch(GAS_URL, {
       method: 'POST',
       mode: 'no-cors',
-      body: JSON.stringify({ mode: 'update', sessionId, rows: [] })
+      body: JSON.stringify({ mode: 'update', sessionId, sheetName: '土壌置換', rows: [] })
     });
   } catch (_) { /* no-corsのため無視 */ }
 

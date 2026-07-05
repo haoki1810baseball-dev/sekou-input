@@ -778,7 +778,7 @@ function renderHistory() {
 
     const titleLabel = isSoilReplacement
       ? `${s.施工日}　${s.号機番号}`
-      : `${s.日付}　${s.杭番号}　${s.号機番号}`;
+      : `${s.日付}　${s.号機番号}　${s.rows.length}本`;
 
     return `<div class="session-card">
       <div class="session-header">

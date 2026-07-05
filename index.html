@@ -758,9 +758,10 @@ function renderHistory() {
         </div>`;
       } else {
         detail = `<strong>杭番号：${r['杭番号'] || '未入力'}</strong>　${r['号機番号'] || ''}`;
-        if (r['杭芯ずれX_mm'] || r['杭芯ずれY_mm']) detail += `<br>杭芯ずれ X:${r['杭芯ずれX_mm']}mm Y:${r['杭芯ずれY_mm']}mm`;
+        if (r['杭芯ずれX_mm'] || r['杭芯ずれY_mm']) detail += `<br>杭芯ずれ X:${r['杭芯ずれX_mm'] || '-'}mm Y:${r['杭芯ずれY_mm'] || '-'}mm`;
         if (r['杭頭レベル_mm']) detail += `　杭頭:${r['杭頭レベル_mm']}mm`;
-        if (r['セメントミルク数量_m3']) detail += `　セメントミルク:${r['セメントミルク数量_m3']}m³`;
+        if (r['根固め液数量_m3']) detail += `<br>根固め液:${r['根固め液数量_m3']}m³`;
+        if (r['杭周固定液数量_m3']) detail += `　杭周固定液:${r['杭周固定液数量_m3']}m³`;
         if (r['備考']) detail += `<br>備考：${r['備考']}`;
         return `<div class="session-row">
           <span class="row-type" style="background:var(--blue-bg);color:var(--blue-dark);">本杭工事</span>
@@ -777,8 +778,8 @@ function renderHistory() {
       : `<button class="btn-delete" onclick="deleteHonkuiSession('${s.sessionId}')"><i class="ti ti-trash"></i></button>`;
 
     const titleLabel = isSoilReplacement
-      ? `${s.施工日}　${s.号機番号}`
-      : `${s.日付}　${s.号機番号}　${s.rows.length}本`;
+      ? `${s.施工日 || ''}　${s.号機番号 || ''}`
+      : `${s.日付 || ''}　${s.号機番号 || ''}　${s.rows ? s.rows.length : 0}本`;
 
     return `<div class="session-card">
       <div class="session-header">
@@ -883,9 +884,16 @@ function addHonkuiCard() {
       </div>
     </div>
     <div class="field">
-      <label>セメントミルク数量</label>
+      <label>根固め液数量</label>
       <div class="unit-wrap">
-        <input type="text" placeholder="0.0" inputmode="decimal" data-field="cement" data-numeric="true">
+        <input type="text" placeholder="0.0" inputmode="decimal" data-field="nekosome" data-numeric="true">
+        <span class="unit-tag">m³</span>
+      </div>
+    </div>
+    <div class="field">
+      <label>杭周固定液数量</label>
+      <div class="unit-wrap">
+        <input type="text" placeholder="0.0" inputmode="decimal" data-field="koishu" data-numeric="true">
         <span class="unit-tag">m³</span>
       </div>
     </div>
@@ -939,7 +947,8 @@ async function submitHonkui() {
       '杭芯ずれX_mm': getHonkuiVal(card, 'sx'),
       '杭芯ずれY_mm': getHonkuiVal(card, 'sy'),
       '杭頭レベル_mm': getHonkuiVal(card, 'level'),
-      'セメントミルク数量_m3': getHonkuiVal(card, 'cement'),
+      '根固め液数量_m3': getHonkuiVal(card, 'nekosome'),
+      '杭周固定液数量_m3': getHonkuiVal(card, 'koishu'),
       '備考': getHonkuiVal(card, 'remarks'),
     });
   });
@@ -1000,7 +1009,8 @@ function startHonkuiEdit(sessionId) {
     setV('sx', row['杭芯ずれX_mm']);
     setV('sy', row['杭芯ずれY_mm']);
     setV('level', row['杭頭レベル_mm']);
-    setV('cement', row['セメントミルク数量_m3']);
+    setV('nekosome', row['根固め液数量_m3']);
+    setV('koishu', row['杭周固定液数量_m3']);
     setV('remarks', row['備考']);
   });
 
